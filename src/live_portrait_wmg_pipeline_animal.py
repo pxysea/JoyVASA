@@ -10,6 +10,7 @@ warnings.filterwarnings("ignore", message="torch.utils.checkpoint: please pass i
 warnings.filterwarnings("ignore", message="None of the inputs have requires_grad=True. Gradients will be None")
 
 import torch
+from scipy.spatial.transform import Rotation
 torch.backends.cudnn.benchmark = True # disable CUDNN_BACKEND_EXECUTION_PLAN_DESCRIPTOR warning
 
 import cv2; cv2.setNumThreads(0); cv2.ocl.setUseOpenCL(False)
@@ -92,7 +93,11 @@ class LivePortraitPipelineAnimal(object):
             if i == 0:  # cache the first frame
                 R_d_0 = R_d_i
                 x_d_0_info = x_d_i_info
-            R_d_i = (R_d_i @ R_d_0.permute(0, 2, 1)) @ R_s
+            R_rel = R_d_i @ R_d_0.permute(0, 2, 1)
+            if inf_cfg.pose_scale != 1.0:  # 按比例缩小生成的头部转动(轴角缩放)；0 = 保持原图姿态
+                rv = Rotation.from_matrix(R_rel[0].float().cpu().numpy()).as_rotvec() * inf_cfg.pose_scale
+                R_rel = torch.from_numpy(Rotation.from_rotvec(rv).as_matrix()).to(R_rel)[None]
+            R_d_i = R_rel @ R_s
 
             # expression
             # 原始
@@ -114,7 +119,7 @@ class LivePortraitPipelineAnimal(object):
             # 绝对
             # t_new = x_d_i_info['t']
             # 相对
-            t_new = x_s_info['t'] + (x_d_i_info['t'] - x_d_0_info['t'])
+            t_new = x_s_info['t'] + (x_d_i_info['t'] - x_d_0_info['t']) * inf_cfg.pose_scale
             t_new[..., 2].fill_(0)  # zero tz
 
             # 公式二

@@ -59,6 +59,7 @@ class ArgumentConfig(PrintableConfig):
     cfg_mode: str = "incremental" # "incremental", "independent"
     cfg_cond = None
     cfg_scale: float = 2.8
+    pose_scale: float = 1.0  # head motion kept: 1 = as generated, 0 = keep the source pose, animate expression only (animal mode)
     is_smooth_motion: bool = True
 
     ########## gradio arguments ##########
