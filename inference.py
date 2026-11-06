@@ -2,6 +2,8 @@
 import os
 import os.path as osp
 import tyro
+import argparse, pathlib, torch
+torch.serialization.add_safe_globals([argparse.Namespace, pathlib.PosixPath])
 import subprocess
 import platform
 from src.config.argument_config import ArgumentConfig
